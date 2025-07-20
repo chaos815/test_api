@@ -1,7 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+const MAX_NOTAM_BATCH = 8;
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS (모든 도메인 허용)
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -15,23 +16,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  // 입력값
-  const { source, target, text } = req.body || {};
+  const { source, target, notams } = req.body || {};
   const apiKey = process.env.OPENAI_API_KEY;
-  const MODEL = "gpt-4o";
 
-  // 디버그: 주요 요청값/키 상태 로깅
-  console.log("[translate.ts] 요청:", { source, target, text, model: MODEL });
+  if (!Array.isArray(notams) || !notams.length) {
+    res.status(400).json({ error: "No NOTAM list provided" });
+    return;
+  }
   if (!apiKey) {
-    console.error("[translate.ts] ERROR: No OpenAI API KEY");
     res.status(500).json({ error: "Missing OpenAI API Key" });
     return;
   }
-  if (!text) {
-    console.error("[translate.ts] ERROR: No text provided");
-    res.status(400).json({ error: "No text provided" });
-    return;
-  }
+
+  const batchList = notams.slice(0, MAX_NOTAM_BATCH);
+
+  const numbered = batchList.map((n, i) => `${i + 1}. ${n}`).join('\n\n');
+  const SYSTEM_PROMPT = `
+아래 여러 건의 영문 NOTAM을 각 줄 번호별로 번역하세요.
+실제 한국 항공 NOTAM 스타일로, 자연스럽고 명확하게, 불필요한 직역 없이 번역하세요.
+한국 조종사들이 현장에서 읽는 한글 NOTAM 어투(공문체)로 작성하세요.
+각 번역 결과 앞에 같은 번호를 붙여주세요.
+`;
 
   try {
     const gptRes = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -41,26 +46,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: MODEL,
+        model: "gpt-4o",
         messages: [
-          { role: "system", content: `Translate the following NOTAM from ${source} to ${target} (aviation context, short, natural):` },
-          { role: "user", content: text }
+          { role: "system", content: SYSTEM_PROMPT.trim() },
+          { role: "user", content: numbered }
         ],
-        max_tokens: 800
+        max_tokens: 1800
       })
     });
 
     const gptJson = await gptRes.json();
-    console.log("[translate.ts] OpenAI 응답:", gptJson);
+    const aiText = gptJson.choices?.[0]?.message?.content?.trim();
 
-    const result = gptJson.choices?.[0]?.message?.content?.trim();
-    if (result) {
-      res.status(200).json({ result });
-    } else {
-      res.status(500).json({ error: gptJson.error?.message || "OpenAI returned no result" });
+    // 번호별로 결과 분리
+    let translations: string[] = [];
+    if (aiText) {
+      const parts = aiText.split(/\n(?=\d+\.\s)/).map(x => x.trim());
+      translations = batchList.map((_, i) => {
+        const find = parts.find(p => p.startsWith(`${i+1}.`));
+        return find ? find.replace(/^\d+\.\s*/, "") : "";
+      });
     }
+
+    res.status(200).json({
+      translations, // 번역 결과 배열(원문 순서와 일치)
+      raw: aiText || "",
+      error: aiText ? null : (gptJson.error?.message || "No result from OpenAI")
+    });
   } catch (err) {
-    console.error("[translate.ts] GPT 호출 ERROR:", err);
     res.status(500).json({ error: String(err) });
   }
 }

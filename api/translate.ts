@@ -1,20 +1,24 @@
-// /api/translate.ts (Vercel 서버리스)
-// TypeScript 기반. JS로도 변환 가능.
+// /api/translate.ts
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-export default async function handler(req, res) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
-  const { source, target, text } = req.body;
-  const apiKey = process.env.OPENAI_API_KEY; // Vercel 환경변수로 넣음
+  const { source, target, text } = req.body || {};
+  const apiKey = process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
     res.status(500).json({ error: "Missing OpenAI API Key" });
     return;
   }
+  if (!text) {
+    res.status(400).json({ error: "No text provided" });
+    return;
+  }
   try {
-    // GPT 번역 (gpt-3.5-turbo 예시)
+    // OpenAI GPT 번역
     const gptRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -32,7 +36,11 @@ export default async function handler(req, res) {
     });
     const gptJson = await gptRes.json();
     const result = gptJson.choices?.[0]?.message?.content?.trim();
-    res.status(200).json({ result });
+    if (result) {
+      res.status(200).json({ result });
+    } else {
+      res.status(500).json({ error: gptJson.error?.message || "OpenAI returned no result" });
+    }
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }

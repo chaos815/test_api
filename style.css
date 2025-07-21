@@ -1,0 +1,212 @@
+body {
+  font-family: 'Segoe UI', sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #f9f9f9;
+  color: #333;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background-color: #ff6b00;
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.orange {
+  color: #fff500;
+  font-weight: bold;
+}
+
+#current-time {
+  font-size: 16px;
+  font-weight: normal;
+}
+
+#search-section {
+  display: flex;
+  gap: 10px;
+  margin: 24px auto 12px auto;
+  max-width: 600px;
+  width: 100%;
+}
+
+#search-input {
+  flex: 1;
+  padding: 10px;
+  font-size: 16px;
+}
+
+#search-btn {
+  padding: 10px 16px;
+  font-size: 16px;
+  background-color: #ff6b00;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+#search-btn:hover {
+  background-color: #e25c00;
+}
+
+#search-status {
+  text-align: center;
+  margin-bottom: 8px;
+  color: #ff6b00;
+  font-weight: bold;
+  min-height: 22px;
+}
+
+#airport-info {
+  text-align: center;
+  margin-bottom: 16px;
+  color: #666;
+  font-weight: 500;
+}
+
+/* 테이블 구조: 원문/번역 각 50% 차지! */
+.notam-table-wrapper {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto 32px auto;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #eee;
+  overflow-x: auto;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+.notam-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.notam-table th,
+.notam-table td {
+  padding: 12px 10px;
+  border-bottom: 1px dashed #eee;
+  vertical-align: top;
+  width: 50%;
+  word-break: break-all;
+}
+
+.notam-table th {
+  background: #ffe2c2;
+  color: #ff6b00;
+  font-size: 16px;
+}
+
+.notam-table td {
+  background: #fff;
+}
+
+@media (max-width: 700px) {
+  .notam-table th, .notam-table td { font-size: 13px; padding: 10px 4px; }
+}
+
+.settings-tabs {
+  display: flex;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+.settings-tabs button {
+  flex: 1;
+  padding: 7px 0;
+  font-size: 15px;
+  background: #fff;
+  border: 1px solid #ff6b00;
+  color: #ff6b00;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  outline: none;
+}
+.settings-tabs button.active {
+  background: #ff6b00;
+  color: #fff;
+}
+
+#settings-content table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+#settings-content th, #settings-content td {
+  padding: 5px 7px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+#settings-content th {
+  background: #ffe2c2;
+  color: #ff6b00;
+}
+#settings-content input[type="text"] {
+  width: 70px;
+  font-size: 14px;
+  margin-right: 4px;
+}
+#settings-content .del-btn {
+  background: #ff6b00;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 3px 7px;
+  cursor: pointer;
+}
+#settings-content .add-row {
+  margin: 6px 0;
+}
+
+.modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+}
+.modal.hidden { display: none; }
+.modal-content {
+  background: #fff;
+  padding: 32px 24px;
+  border-radius: 14px;
+  min-width: 320px;
+  max-width: 440px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.16);
+  position: relative;
+}
+.close {
+  position: absolute;
+  right: 18px;
+  top: 14px;
+  font-size: 28px;
+  color: #ff6b00;
+  cursor: pointer;
+}
+
+/* 모래시계(스피너) */
+.spinner {
+  display: inline-block;
+  width: 22px; height: 22px;
+  border: 3px solid #ffe2c2;
+  border-radius: 50%;
+  border-top: 3px solid #ff6b00;
+  animation: spin 1s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg);}
+  100% { transform: rotate(360deg);}
+}

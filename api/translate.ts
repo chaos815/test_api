@@ -1,3 +1,4 @@
+// translate.ts (Vercel edge function)
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -10,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const { source, target, text } = req.body || {};
+  const { text, source, target } = req.body || {};
   const apiKey = process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
@@ -18,38 +19,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  if (!text) {
-    res.status(400).json({ error: "No text provided" });
-    return;
-  }
-
   try {
-    const prompt = `Translate the following NOTAM into Korean in a natural, short, aviation-appropriate summary format. Include source info if present.\n\n${text}`;
-
-    const gptRes = await fetch("https://api.openai.com/v1/chat/completions", {
+    const completion = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "gpt-4o",
+        model: "gpt-3.5-turbo",
         messages: [
-          { role: "system", content: "You are an aviation NOTAM translator." },
-          { role: "user", content: prompt }
+          { role: "system", content: "Summarize and translate the following NOTAM in Korean. Include NOTAM number, airport, validity, daily hours, content, and source. Format in structured style." },
+          { role: "user", content: text }
         ],
-        max_tokens: 800
+        max_tokens: 1000
       })
     });
 
-    const gptJson = await gptRes.json();
-    const result = gptJson.choices?.[0]?.message?.content?.trim();
-
-    if (result) {
-      res.status(200).json({ result });
-    } else {
-      res.status(500).json({ error: gptJson.error?.message || "OpenAI returned no result" });
-    }
+    const data = await completion.json();
+    const result = data.choices?.[0]?.message?.content?.trim();
+    res.status(200).json({ result });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }

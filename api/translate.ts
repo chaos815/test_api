@@ -1,37 +1,78 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { OpenAI } from 'openai';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const { text } = req.body;
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    res.status(200).end();
+    return;
+  }
+
+  if (req.method !== "POST") {
+    res.status(405).json({ error: "Method not allowed" });
+    return;
+  }
+
+  const { source, target, text } = req.body || {};
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    res.status(500).json({ error: "Missing OpenAI API Key" });
+    return;
+  }
+
+  if (!text) {
+    res.status(400).json({ error: "No text provided" });
+    return;
+  }
 
   try {
-    const chat = await openai.chat.completions.create({
-      model: 'gpt-4o',  // ✅ GPT-4o 사용
-      messages: [
-        {
-          role: 'user',
-          content: `너는 항공전문가야. 조종사들이 쉽게 볼수 있게 아래 NOTAM 내용을 한국어로 항목별로 요약 번역해줘.
-- NOTAM 번호
-- 공항 이름과 코드
-- 유효 시작일과 종료일 (UTC)
-- 일일 적용 시간 (가능하면 한국시간도)
-- 주요 내용 요약 (예: 유도로 폐쇄, 활주로 공사 등)
-- SOURCE 항목도 빠짐없이 포함
+    const messages = [
+      {
+        role: "system",
+        content:
+          "You are an aviation NOTAM interpreter. Translate each NOTAM below into natural Korean. Summarize the information in a structured format including:\n\n" +
+          "- NOTAM 번호 (있는 경우)\n" +
+          "- 타입 및 영향 (예: 활주로 폐쇄, 공사 등)\n" +
+          "- 공항 또는 FIR 명칭 (가능한 경우)\n" +
+          "- 유효기간 (시작/종료 시간)\n" +
+          "- 상세 내용 요약\n" +
+          "- 주의사항 또는 비고 (있다면)\n\n" +
+          "Ensure technical aviation terms are preserved and translated naturally. Do not omit the 'SOURCE: XXXX' part—translate it as well."
+      },
+      {
+        role: "user",
+        content: text
+      }
+    ];
 
-원문:
-${text}
-`,
-        },
-      ],
+    const gptRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages,
+        temperature: 0.5,
+        max_tokens: 1000
+      })
     });
 
-    const translated = chat.choices[0].message.content;
-    res.status(200).send(translated);
-  } catch (error) {
-    res.status(500).send('번역 실패');
+    const gptJson = await gptRes.json();
+    const result = gptJson.choices?.[0]?.message?.content?.trim();
+
+    if (result) {
+      res.status(200).json({ result });
+    } else {
+      res.status(500).json({
+        error: gptJson.error?.message || "OpenAI returned no result"
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
   }
 }

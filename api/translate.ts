@@ -13,6 +13,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
+
   const { source, target, text } = req.body || {};
   const apiKey = process.env.OPENAI_API_KEY;
 
@@ -24,6 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(400).json({ error: "No text provided" });
     return;
   }
+
   try {
     const gptRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -34,14 +36,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       body: JSON.stringify({
         model: "gpt-4o",
         messages: [
-          { role: "system", content: `Translate the following NOTAM from ${source} to ${target} (aviation context, short, natural):` },
-          { role: "user", content: text }
+          {
+            role: "system",
+            content: `You are an expert aviation NOTAM translator. Translate each NOTAM into short, natural Korean that is easy for pilots to understand. Avoid literal word-for-word translation. Summarize the meaning if appropriate.`
+          },
+          {
+            role: "user",
+            content: `Translate the following NOTAM(s) from ${source} to ${target}:\n\n${text}`
+          }
         ],
-        max_tokens: 800
+        temperature: 0.3,
+        max_tokens: 1000
       })
     });
+
     const gptJson = await gptRes.json();
     const result = gptJson.choices?.[0]?.message?.content?.trim();
+
     if (result) {
       res.status(200).json({ result });
     } else {

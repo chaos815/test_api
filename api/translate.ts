@@ -9,6 +9,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(200).end();
     return;
   }
+
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
     return;
@@ -21,6 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(500).json({ error: "Missing OpenAI API Key" });
     return;
   }
+
   if (!text) {
     res.status(400).json({ error: "No text provided" });
     return;
@@ -38,15 +40,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         messages: [
           {
             role: "system",
-            content: `You are an expert aviation NOTAM translator. Translate each NOTAM into short, natural Korean that is easy for pilots to understand. Avoid literal word-for-word translation. Summarize the meaning if appropriate.`
+            content: `You are an aviation NOTAM summary assistant.
+Translate and summarize the following NOTAM from ${source} to ${target}.
+Your output must follow this summary format:
+
+\ud83d\udd37 \uC6D0\uBB38 \uc694\uc57d:
+
+\u25cf NOTAM \ubc88\ud638: ...
+\u25cf \uACF5\ud56d: ... (\uACF5\ud56d\uba85)
+\u25cf \uc720\ud6a8\uae30\uac04:
+  \u25aa\ufe0f \uc2dc\uc791: ...
+  \u25aa\ufe0f \uc885\ub8cc: ...
+  \u25aa\ufe0f \uc77c\uc77c \uc801\uc6a9\uc2dc\uac04: ... \u2192 \ud55c\uad6d\uc2dc\uac04 ...
+\u25cf \ub0b4\uc6a9:
+  \u25aa\ufe0f ...
+
+Use aviation terminology and translate dates/times clearly.`
           },
-          {
-            role: "user",
-            content: `Translate the following NOTAM(s) from ${source} to ${target}:\n\n${text}`
-          }
+          { role: "user", content: text }
         ],
-        temperature: 0.3,
-        max_tokens: 1000
+        max_tokens: 1000,
+        temperature: 0.2
       })
     });
 

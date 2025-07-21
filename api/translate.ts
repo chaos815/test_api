@@ -14,7 +14,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       messages: [
         {
           role: 'user',
-          content: `아래 NOTAM 내용을 한국어로 항목별로 요약 번역해줘.
+          content: `너는 항공전문가야. 조종사들이 쉽게 볼수 있게 아래 NOTAM 내용을 한국어로 항목별로 요약 번역해줘.
 - NOTAM 번호
 - 공항 이름과 코드
 - 유효 시작일과 종료일 (UTC)
